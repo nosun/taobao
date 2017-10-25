@@ -5,6 +5,7 @@ from lxml import etree
 import json
 import re
 import time
+import random
 from furl import furl
 
 if __name__ == '__main__' and __package__ is None:
@@ -13,42 +14,68 @@ if __name__ == '__main__' and __package__ is None:
     sys.path.append(path.dirname(path.dirname(path.dirname(path.abspath(__file__)))))
 
 from taobao.items import TaobaoItem
-from taobao.utils.csv import read_csv
-from taobao.utils.headers import headers
-from taobao.settings import DATA_PATH
+from taobao.utils.useragent import user_agents
+from taobao.utils.proxystatic import ProxyStatic
+from taobao.mysql_helper import MysqlHelper
 
 
 class ProductSpider(scrapy.Spider):
     name = "product"
     allowed_domains = ["taobao.com", "tmall.com"]
+    # handle_httpstatus_list = [302]
+    # proxy = ProxyStatic()
 
-    def __init__(self):
-        super(ProductSpider, self).__init__(self)
-        self._get_shop_url()
+    def start_requests(self):
+        tasks = self.get_tasks()
+        for task in tasks:
+            meta = dict()
+            meta['task'] = task
+            # meta['proxy'] = self.proxy.get_proxy()['https']
+            headers = self.get_headers(task['task_url'], task['site'])
+            yield scrapy.Request(task['url'], headers=headers, callback=self.parse, meta=meta)
 
     def parse(self, response):
-        elements = etree.HTML(response.text.replace('\\', '').strip()[10:-2])
-        links = elements.xpath('//a[@class="J_TGoldData"]/@href')
-        for link in links:
-            yield scrapy.Request(response.urljoin(link), headers=headers, callback=self.parse_page)
-            # @todo nextpage
 
-    def parse_next_page(self):
-        pass
+        meta = response.meta
+        task = meta['task']
+        headers = self.get_headers(task['task_url'], task['site'])
+
+        elements = etree.HTML(response.text.replace('\\', '').strip()[10:-2])
+        lists = elements.xpath("//dl[contains(@class,'item')]")
+        has_next = elements.xpath("//a[@class='J_SearchAsync next']")
+
+        if has_next:
+            page = int(task['url'][-1])
+            page += 1
+            next_url = task['url'][:-1] + str(page)
+            yield scrapy.Request(next_url, headers=headers, callback=self.parse, meta=meta)
+
+        if len(lists):
+            for p in lists:
+                p_meta = {}
+                item = TaobaoItem()
+                item['sid'] = task['id']  # shopid
+                item['title'] = p.xpath("./dd[@class='detail']/a/text()")[0].strip()
+                item['thumb'] = response.urljoin(p.xpath("./dt//img/@src")[0])
+                item['url'] = response.urljoin(p.xpath("./dd[@class='detail']/a/@href")[0])
+                item['price'] = p.xpath(".//span[@class='c-price']/text()")[0]
+                p_meta['item'] = item
+                if item['url']:
+                    yield scrapy.Request(item['url'], headers=headers, callback=self.parse_page, meta=p_meta)
+                # break  # for test
 
     def parse_page(self, response):
-        item = TaobaoItem()
+        item = response.meta['item']
 
         # extract
         item['sn'] = response.url.split("?id=")[1]
-        item['url'] = response.url
-        item['title'] = self.extract_title(response)
         item['images'] = self.extract_images(response)
         item['choices'] = self.extract_choice(response)
         item['properties'] = self.extract_properties(response)
         # print item
         return item
 
+    # from detail page parse title, no use
     def extract_title(self, response):
         title = response.xpath("//h3[@class='tb-main-title']/text()").extract_first().strip()
         return title
@@ -61,7 +88,7 @@ class ProductSpider(scrapy.Spider):
             res = matchObj.group(2)
             _arr = res.split(",")
             for url in _arr:
-                images.append(response.urljoin(url))
+                images.append("https:" + url.strip('"'))
 
         return images
 
@@ -127,27 +154,57 @@ class ProductSpider(scrapy.Spider):
 
         return properties
 
-    def _get_shop_url(self):
-        task_file = os.path.join(DATA_PATH, "shop_infos.csv")
-        shops = read_csv(task_file)
-        self.start_urls = []
+    def get_tasks(self):
+        db = MysqlHelper()
+        shops = db.get_shops()
+        tasks = []
+        for shop in shops:
+            wid = shop['wid']
+            name = shop['name']
+            task_url = shop['task_url']
+            _arr = task_url.split("/")
+            if len(_arr) >= 3:
+                site = _arr[2]
+                path = _arr[3]
 
-        for item in shops:
-            name, wid = item.strip().split(",")
-            url = "https://{}.taobao.com/i/asynSearch.htm".format(name)
+                url = "https://{}/i/asynSearch.htm".format(site)
 
-            params = {"_ksTS": "replace_time_141",  # will replace later
-                      "callback": "jsonp142",
-                      "mid": "w-{}-0".format(wid),
-                      "wid": wid,
-                      "path": "/search.htm",
-                      "search": "y",
-                      "pageNo": 1}
+                params = {"_ksTS": "replace_time_141",  # will replace later
+                          "callback": "jsonp142",
+                          "mid": "w-{}-0".format(wid),
+                          "wid": wid,
+                          "path": "/{}".format(path),
+                          "search": "y",
+                          "pageNo": 1}
 
-            f = furl(url)
-            f.args = params
-            print(f.url)
-            # self.start_urls.append(f)
+                f = furl(url)
+                f.args = params
+                # print(f.url)
+                task = dict()
+                task['id'] = str(shop['id'])
+                task['name'] = name
+                task['site'] = site
+                task['path'] = path
+                task['task_url'] = task_url
+                task['url'] = f.url
+                tasks.append(task)
+                # break  # only get one for test
+            else:
+                continue
+        return tasks
+
+    def get_headers(self, referer, site):
+        headers = {'User-Agent': random.choice(user_agents),
+                   'Accept-Encoding': 'gzip, deflate, sdch',
+                   'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3',
+                   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                   'Connection': 'keep-alive'
+                   }
+
+        headers['referer'] = referer
+        headers['authority'] = site
+
+        return headers
 
 
 def get_attrs(key, colors=None, sizes=None):
@@ -163,5 +220,5 @@ def get_attrs(key, colors=None, sizes=None):
 
 if __name__ == '__main__':
     spider = ProductSpider()
-    print(spider.start_urls)
-
+    # urls = spider.get_shop_url()
+    # print(urls)

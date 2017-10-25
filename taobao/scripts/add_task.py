@@ -12,6 +12,8 @@ from taobao.settings import DATA_PATH
 from taobao.utils.csv import read_csv
 
 
+
+# step 1
 def insert_task():
     csv_file = os.path.join(DATA_PATH, "task.csv")
     lines = read_csv(csv_file)
@@ -22,6 +24,7 @@ def insert_task():
         db.add_task_url(task)
 
 
+# step 2
 def update_task():
     csv_file = os.path.join(DATA_PATH, "shop_infos.csv")
     lines = read_csv(csv_file)

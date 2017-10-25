@@ -27,7 +27,7 @@ class MysqlHelper(object):
         pass
 
     def get_shops(self):
-        c = self.db.cursor()
+        c = self.db.cursor(MySQLdb.cursors.DictCursor)
         c.execute("select * from shops")
         return c.fetchall()
 
@@ -39,15 +39,19 @@ class MysqlHelper(object):
         except:
             pass
 
-    def update_task(self, wid, name, id):
+    def update_task(self, name, wid, id):
         c = self.db.cursor()
         c.execute("""update shops set wid = %s, name = %s where id = %s""", (wid, name, id))
         self.db.commit()
+
+    def get_products(self):
+        c = self.db.cursor(MySQLdb.cursors.DictCursor)
+        sql = "select * from products limit 1"
+        c.execute(sql)
+        return c.fetchall()
 
 
 if __name__ == "__main__":
     db = MysqlHelper()
     res = db.get_shops()
     print(res)
-
-

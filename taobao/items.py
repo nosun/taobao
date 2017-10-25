@@ -13,10 +13,12 @@ class TaobaoItem(scrapy.Item):
     sn = scrapy.Field()
     title = scrapy.Field()
     url = scrapy.Field()
+    thumb = scrapy.Field()
+    price = scrapy.Field()
     images = scrapy.Field()
     choices = scrapy.Field()
     properties = scrapy.Field()
     sid = scrapy.Field()  # shop_id
-    type = scrapy.Field()  # product_type
+    # type = scrapy.Field()  # product_type
     pass
 
