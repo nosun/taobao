@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 172.17.0.1:3306
--- Generation Time: Oct 24, 2017 at 07:54 PM
+-- Generation Time: Oct 25, 2017 at 07:04 PM
 -- Server version: 5.7.10
 -- PHP Version: 5.6.31-4+ubuntu16.04.1+deb.sury.org+4
 
@@ -28,9 +28,11 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `products` (
   `id` int(11) NOT NULL,
-  `sn` varchar(40) NOT NULL,
+  `sn` varchar(40) CHARACTER SET utf8 NOT NULL,
   `title` varchar(255) CHARACTER SET utf8 DEFAULT '',
-  `url` varchar(255) DEFAULT '',
+  `price` float DEFAULT '0',
+  `thumb` varchar(512) CHARACTER SET utf8 DEFAULT '',
+  `url` varchar(255) CHARACTER SET utf8 DEFAULT '',
   `images` text CHARACTER SET utf8,
   `choices` text CHARACTER SET utf8,
   `properties` text CHARACTER SET utf8,
@@ -82,7 +84,7 @@ ALTER TABLE `shops`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
 --
 -- AUTO_INCREMENT for table `shops`
 --
