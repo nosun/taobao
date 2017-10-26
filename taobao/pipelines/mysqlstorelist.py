@@ -4,13 +4,10 @@ import MySQLdb
 import MySQLdb.cursors
 from twisted.enterprise import adbapi
 import time
-import pickle
-import logging
-import hashlib
 from scrapy.exceptions import DropItem
 
 
-class MysqlStorePipeline(object):
+class MysqlStoreListPipeline(object):
     def __init__(self, db_pool):
         self.db_pool = db_pool
 
@@ -55,24 +52,16 @@ class MysqlStorePipeline(object):
         ret = conn.fetchone()
 
         if ret:
-
-            sql = """update products set images = %s, choices = %s , properties = %s, updated_at = %s where sn = %s """
-            params = (item['images'], item['choices'], item['properties'], now, item['sn'])
-            print(params)
-            try:
-                conn.execute(sql, params)
-            except Exception as e:
-                print(e)
+            return
 
         else:
             # insert article list data
-            sql = """insert into products(sn, title, url, thumb, price, images, choices, properties, sid, created_at, 
-                     updated_at) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            sql = """insert into products(sn, title, url, thumb, price, sid, created_at, updated_at) 
+                     values (%s, %s, %s, %s, %s, %s, %s, %s)
                   """
             print(sql)
 
-            params = (item['sn'], item['title'], item['url'], item['thumb'], item['price'], item['images'],
-                      item['choices'], item['properties'], item['sid'], now, now)
+            params = (item['sn'], item['title'], item['url'], item['thumb'], item['price'], item['sid'], now, now)
             print(params)
             try:
                 conn.execute(sql, params)
@@ -81,14 +70,7 @@ class MysqlStorePipeline(object):
 
     def _format(self, item):
         item['title'] = item['title'].strip()
-        item['images'] = MySQLdb.escape_string(repr(item['images']))
-        item['choices'] = MySQLdb.escape_string(repr(item['choices']))
-        item['properties'] = MySQLdb.escape_string(repr(item['properties']))
         return item
-
-    def _format_images(self, images):
-        pass
-
 
     def _handle_error(self, failue, item, spider):
         print(failue)

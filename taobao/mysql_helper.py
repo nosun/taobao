@@ -26,9 +26,13 @@ class MysqlHelper(object):
     def get_shop_by_name(self, condition):
         pass
 
-    def get_shops(self):
+    def get_shops(self, shop_id=None):
         c = self.db.cursor(MySQLdb.cursors.DictCursor)
-        c.execute("select * from shops")
+        if shop_id:
+            sql = "select * from shops where id = %s" % shop_id
+        else:
+            sql = "select * from shops where status = 0 and task_url not like '%tmall%'"
+        c.execute(sql)
         return c.fetchall()
 
     def add_task_url(self, task):

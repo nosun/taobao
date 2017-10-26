@@ -1,3 +1,3 @@
 from scrapy import cmdline
 
-cmdline.execute("scrapy crawl product".split())
+cmdline.execute("scrapy crawl productlist".split())
