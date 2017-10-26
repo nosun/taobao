@@ -56,8 +56,10 @@ class MysqlStorePipeline(object):
 
         if ret:
 
-            sql = """update products set images = %s, choices = %s , properties = %s, updated_at = %s where sn = %s """
-            params = (item['images'], item['choices'], item['properties'], now, item['sn'])
+            sql = """update products set images = %s, sizes = %s, colors = %s, choices = %s , properties = %s, 
+            updated_at = %s where sn = %s """
+            params = (item['images'], item['sizes'], item['colors'], item['choices'], item['properties'], now,
+                      item['sn'])
             print(params)
             try:
                 conn.execute(sql, params)
@@ -67,12 +69,13 @@ class MysqlStorePipeline(object):
         else:
             # insert article list data
             sql = """insert into products(sn, title, url, thumb, price, images, choices, properties, sid, created_at, 
-                     updated_at) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     updated_at) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                   """
             print(sql)
 
-            params = (item['sn'], item['title'], item['url'], item['thumb'], item['price'], item['images'],
-                      item['choices'], item['properties'], item['sid'], now, now)
+            params = (
+                item['sn'], item['title'], item['url'], item['thumb'], item['price'], item['images'], item['sizes'],
+                item['colors'], item['choices'], item['properties'], item['sid'], now, now)
             print(params)
             try:
                 conn.execute(sql, params)
@@ -80,7 +83,6 @@ class MysqlStorePipeline(object):
                 print(e)
 
     def _format(self, item):
-        item['title'] = item['title'].strip()
         item['images'] = MySQLdb.escape_string(repr(item['images']))
         item['choices'] = MySQLdb.escape_string(repr(item['choices']))
         item['properties'] = MySQLdb.escape_string(repr(item['properties']))
@@ -88,7 +90,6 @@ class MysqlStorePipeline(object):
 
     def _format_images(self, images):
         pass
-
 
     def _handle_error(self, failue, item, spider):
         print(failue)

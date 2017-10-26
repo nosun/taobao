@@ -19,8 +19,8 @@ from taobao.utils.proxystatic import ProxyStatic
 from taobao.mysql_helper import MysqlHelper
 
 
-class ProductSpider(scrapy.Spider):
-    name = "product"
+class ProductOnlySpider(scrapy.Spider):
+    name = "productonly"
     allowed_domains = ["taobao.com", "tmall.com"]
     # handle_httpstatus_list = [302]
     # proxy = ProxyStatic()
@@ -28,57 +28,21 @@ class ProductSpider(scrapy.Spider):
     def start_requests(self):
         tasks = self.get_tasks()
         for task in tasks:
-            meta = dict()
-            meta['task'] = task
             # meta['proxy'] = self.proxy.get_proxy()['https']
-            headers = self.get_headers(task['task_url'], task['site'])
-            yield scrapy.Request(task['url'], headers=headers, callback=self.parse, meta=meta)
-
-    def parse(self, response):
-
-        meta = response.meta
-        task = meta['task']
-        headers = self.get_headers(task['task_url'], task['site'])
-
-        elements = etree.HTML(response.text.replace('\\', '').strip()[10:-2])
-        lists = elements.xpath("//dl[contains(@class,'item')]")
-        has_next = elements.xpath("//a[@class='J_SearchAsync next']")
-
-        if has_next:
-            page = int(task['url'][-1])
-            page += 1
-            next_url = task['url'][:-1] + str(page)
-            yield scrapy.Request(next_url, headers=headers, callback=self.parse, meta=meta)
-
-        if len(lists):
-            for p in lists:
-                p_meta = {}
-                item = TaobaoItem()
-                item['sid'] = task['id']  # shopid
-                item['title'] = p.xpath("./dd[@class='detail']/a/text()")[0].strip()
-                item['thumb'] = response.urljoin(p.xpath("./dt//img/@src")[0])
-                item['url'] = response.urljoin(p.xpath("./dd[@class='detail']/a/@href")[0])
-                item['price'] = p.xpath(".//span[@class='c-price']/text()")[0]
-                p_meta['item'] = item
-                if item['url']:
-                    yield scrapy.Request(item['url'], headers=headers, callback=self.parse_page, meta=p_meta)
-                # break  # for test
+            url = furl(task)
+            headers = self.get_headers(url.url, url.host)
+            yield scrapy.Request(task, headers=headers, callback=self.parse_page,)
 
     def parse_page(self, response):
-        item = response.meta['item']
+        item = TaobaoItem()
 
         # extract
         item['sn'] = response.url.split("?id=")[1]
         item['images'] = self.extract_images(response)
-        item['choices'] = self.extract_choice(response)
+        item['choices'], item['sizes'], item['colors'] = self.extract_choice(response)
         item['properties'] = self.extract_properties(response)
         # print item
         return item
-
-    # from detail page parse title, no use
-    def extract_title(self, response):
-        title = response.xpath("//h3[@class='tb-main-title']/text()").extract_first().strip()
-        return title
 
     def extract_images(self, response):
         images = []
@@ -115,6 +79,7 @@ class ProductSpider(scrapy.Spider):
         # color
         color_types = response.xpath('//dl[contains(@class,"J_Prop_Color")]//li/@data-value').extract()
         colors = response.xpath('//dl[contains(@class,"J_Prop_Color")]//span/text()').extract()
+        f_colors = ','.join(colors)
         ctypes = {}
         if len(colors):
             for i in range(len(colors)):
@@ -123,6 +88,7 @@ class ProductSpider(scrapy.Spider):
         # size
         size_types = response.xpath('//dl[contains(@class,"J_Prop_measurement")]//li/@data-value').extract()
         sizes = response.xpath('//dl[contains(@class,"J_Prop_measurement")]//span/text()').extract()
+        f_sizes = ','.join(sizes)
         stypes = {}
         if len(sizes):
             for i in range(len(sizes)):
@@ -138,7 +104,7 @@ class ProductSpider(scrapy.Spider):
                 sku['attr'] = get_attrs(k, ctypes, stypes)
                 sku['price'] = v['price']
                 skus.append(sku)
-        return skus
+        return skus, f_sizes, f_colors
 
         # skuMap     : {";1627207:28320;":{"oversold":false,"price":"276.00","skuId":"3590438822427","stock":"2"},";1627207:28326;":{"oversold":false,"price":"276.00","skuId":"3590438822428","stock":"2"},";1627207:28327;":{"oversold":false,"price":"276.00","skuId":"3457048284671","stock":"2"},";1627207:28334;":{"oversold":false,"price":"276.00","skuId":"3590438822430","stock":"2"},";1627207:28341;":{"oversold":false,"price":"276.00","skuId":"3590438822431","stock":"2"}}
         # ,propertyMemoMap: {"1627207:28320":"白色","1627207:28326":"红色","1627207:28327":"酒红色","1627207:28334":"灰色","1627207:28341":"黑色"}
@@ -156,41 +122,8 @@ class ProductSpider(scrapy.Spider):
 
     def get_tasks(self):
         db = MysqlHelper()
-        shops = db.get_shops()
-        tasks = []
-        for shop in shops:
-            wid = shop['wid']
-            name = shop['name']
-            task_url = shop['task_url']
-            _arr = task_url.split("/")
-            if len(_arr) >= 3:
-                site = _arr[2]
-                path = _arr[3]
-
-                url = "https://{}/i/asynSearch.htm".format(site)
-
-                params = {"_ksTS": "replace_time_141",  # will replace later
-                          "callback": "jsonp142",
-                          "mid": "w-{}-0".format(wid),
-                          "wid": wid,
-                          "path": "/{}".format(path),
-                          "search": "y",
-                          "pageNo": 1}
-
-                f = furl(url)
-                f.args = params
-                # print(f.url)
-                task = dict()
-                task['id'] = str(shop['id'])
-                task['name'] = name
-                task['site'] = site
-                task['path'] = path
-                task['task_url'] = task_url
-                task['url'] = f.url
-                tasks.append(task)
-                # break  # only get one for test
-            else:
-                continue
+        products = db.get_product_tasks()
+        tasks = [product['url'] for product in products if product['url'] is not None]
         return tasks
 
     def get_headers(self, referer, site):
@@ -208,7 +141,7 @@ class ProductSpider(scrapy.Spider):
 
 
 def get_attrs(key, colors=None, sizes=None):
-    key = key.strip(";", "")
+    key = key.strip(";")
     for k, v in colors.items():
         key = key.replace(k, v)
 
@@ -219,6 +152,6 @@ def get_attrs(key, colors=None, sizes=None):
 
 
 if __name__ == '__main__':
-    spider = ProductSpider()
+    spider = ProductOnlySpider()
     # urls = spider.get_shop_url()
     # print(urls)

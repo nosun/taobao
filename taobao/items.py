@@ -17,6 +17,8 @@ class TaobaoItem(scrapy.Item):
     price = scrapy.Field()
     images = scrapy.Field()
     choices = scrapy.Field()
+    sizes = scrapy.Field()
+    colors = scrapy.Field()
     properties = scrapy.Field()
     sid = scrapy.Field()  # shop_id
     # type = scrapy.Field()  # product_type

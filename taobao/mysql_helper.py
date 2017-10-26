@@ -26,6 +26,12 @@ class MysqlHelper(object):
     def get_shop_by_name(self, condition):
         pass
 
+    def get_shops_by_status(self, status):
+        c = self.db.cursor(MySQLdb.cursors.DictCursor)
+        sql = "select * from shops where status = %s order by id asc" % status
+        c.execute(sql)
+        return c.fetchall()
+
     def get_shops(self, shop_id=None):
         c = self.db.cursor(MySQLdb.cursors.DictCursor)
         if shop_id:
@@ -48,11 +54,25 @@ class MysqlHelper(object):
         c.execute("""update shops set wid = %s, name = %s where id = %s""", (wid, name, id))
         self.db.commit()
 
-    def get_products(self):
+    def get_product_tasks(self):
         c = self.db.cursor(MySQLdb.cursors.DictCursor)
-        sql = "select * from products limit 1"
+        sql = "select * from products order by id asc"
         c.execute(sql)
         return c.fetchall()
+
+    def get_products(self):
+        c = self.db.cursor(MySQLdb.cursors.DictCursor)
+        sql = "select * from products where images is not Null order by id asc"
+        c.execute(sql)
+        return c.fetchall()
+
+    def get_products_by_shop(self, shop_id):
+        c = self.db.cursor(MySQLdb.cursors.DictCursor)
+        sql = "select p.*, s.* from products p inner join shops s on p.sid = s.id  where s.id = %s " \
+              "order by p.id asc" % shop_id
+        c.execute(sql)
+        return c.fetchall()
+
 
 
 if __name__ == "__main__":
