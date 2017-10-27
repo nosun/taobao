@@ -56,7 +56,7 @@ class MysqlHelper(object):
 
     def get_product_tasks(self):
         c = self.db.cursor(MySQLdb.cursors.DictCursor)
-        sql = "select * from products order by id asc"
+        sql = "select * from products where images is Null order by id asc"
         c.execute(sql)
         return c.fetchall()
 

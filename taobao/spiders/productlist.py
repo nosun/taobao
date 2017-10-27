@@ -41,7 +41,7 @@ class ProductListSpider(scrapy.Spider):
             if start:
                 task['url'] = task['url'][:-1] + str(start)
             meta['task'] = task
-            meta['proxy'] = "https://avarsha:avarsha@45.33.75.249:31028"
+            # meta['proxy'] = "https://avarsha:avarsha@45.33.75.249:31028"
             headers = self.get_headers(task['task_url'], task['site'])
             yield scrapy.Request(task['url'], headers=headers, callback=self.parse, meta=meta)
 
@@ -70,9 +70,9 @@ class ProductListSpider(scrapy.Spider):
                 item['sid'] = task['id']  # shopid
                 item['title'] = p.xpath("./dd[@class='detail']/a/text()")[0].strip()
                 item['thumb'] = response.urljoin(p.xpath("./dt//img/@src")[0])
-                item['url'] = response.urljoin(p.xpath("./dd[@class='detail']/a/@href")[0])
-                item['price'] = p.xpath(".//span[@class='c-price']/text()")[0]
-                item['sn'] = item['url'].split("?id=")[1]
+                item['url'] = response.urljoin(p.xpath("./dd[@class='detail']/a/@href")[0]).replace(" ", "")
+                item['price'] = p.xpath(".//span[@class='c-price']/text()")[0].strip()
+                item['sn'] = item['url'].split("?id=")[1].split("&")[0]
                 p_meta['item'] = item
                 if item['url']:
                     yield item

@@ -12,11 +12,16 @@ from taobao.utils.csv import write_dict_to_csv
 from taobao.utils.csv import write_list_to_csv
 from taobao.settings import DATA_PATH
 
+head = list()
+
 
 def get_choice(choices, type):
     choices = format_data(choices)
-    # for k, v in choices.items():
-
+    prices = set()
+    for choice in choices:
+        prices.add(choice['price'])
+    prices = ','.join(prices)
+    return prices
 
 
 def get_property_keys():
@@ -24,10 +29,14 @@ def get_property_keys():
     products = db.get_products()
     all_keys = set()
     for p in products:
-        properties = format_data(p['properties'])
-        keys = properties.keys()
-        for k in keys:
-            all_keys.add(k)
+        try:
+            properties = format_data(p['properties'])
+            keys = properties.keys()
+            for k in keys:
+                all_keys.add(k)
+        except Exception as e:
+            print(p['id'])
+            print(p['properties'])
     return all_keys
 
 
@@ -38,10 +47,18 @@ def format_data(properties):
 
 
 def write_head(file_path):
-    head = ("sn", "title", "price", "prices", "colors", "sizes", "url", "shop_name", "shop_url")
-    attrs = get_property_keys()
-    head = head + tuple(attrs)
+    global head
+    head = ["1-sn", "2-title", "3-price", "4-prices", "5-colors", "6-sizes", "7-url", "8-shop_name", "9-shop_url"]
+    attrs = list(get_property_keys())
+    head = sorted(head + attrs)
     write_list_to_csv([head], file_path)
+
+
+def format_line():
+    line = dict()
+    for k in head:
+        line[k] = ''
+    return line
 
 
 def main():
@@ -53,18 +70,23 @@ def main():
     for shop in shops:
         products = db.get_products_by_shop(shop['id'])
         for product in products:
-            line = dict()
-            line['sn'] = product['sn']
-            line['title'] = product['title']
-            line['price'] = product['price']
-            line['url'] = product['url']
-            line['shop_name'] = product['shop_display_name']
-            line['shop_url'] = product['task_url']
-            # @todo attrs
-            line['prices'] = get_choice(product['choices'], 'prices')
-            line['color'] = get_choice(product['choices'], 'color')
-            line['sizes'] = get_choice(product['choices'], 'size')
-            line['attrs'] = get_attrs(product['properties'])
+            line = format_line()
+            line['1-sn'] = product['sn']
+            line['2-title'] = product['title']
+            line['3-price'] = product['price']
+            line['4-prices'] = product['price']
+            line['5-colors'] = product['colors'].replace("\"", "")
+            line['6-sizes'] = product['sizes'].replace("\"", "")
+            line['7-url'] = product['url']
+            line['8-shop_name'] = product['name']
+            line['9-shop_url'] = product['task_url']
+            properties = format_data(product['properties'])
+            for k, v in properties.items():
+                line[k] = v.replace("\"", "")
+            print(line)
+            new_line = line.values()
+            print(new_line)
+            write_list_to_csv([new_line], file_path)
 
 
 if __name__ == '__main__':

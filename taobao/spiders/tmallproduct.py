@@ -19,9 +19,9 @@ from taobao.utils.proxystatic import ProxyStatic
 from taobao.mysql_helper import MysqlHelper
 
 
-class ProductOnlySpider(scrapy.Spider):
-    name = "productonly"
-    allowed_domains = ["taobao.com", "tmall.com"]
+class TmallProductSpider(scrapy.Spider):
+    name = "tmallproduct"
+    allowed_domains = ["tmall.com"]
     # handle_httpstatus_list = [302]
     # proxy = ProxyStatic()
 
