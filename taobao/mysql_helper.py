@@ -88,8 +88,7 @@ class MysqlHelper(object):
 		else:
 			# insert article list data
 			sql = """insert into products(sn, title, url, thumb, price, sid, created_at, updated_at)
-	                 values (%s, %s, %s, %s, %s, %s, %s, %s)
-	              """
+	                 values (%s, %s, %s, %s, %s, %s, %s, %s)"""
 			print(sql)
 			
 			params = (item['sn'], item['title'], item['url'], item['thumb'], item['price'], item['sid'], now, now)
@@ -108,10 +107,10 @@ class MysqlHelper(object):
 		ret = c.fetchone()
 		
 		if ret:
-			sql = """update products set images = %s, sizes = %s, colors = %s, choices = %s , properties = %s,
-    	            updated_at = %s where sn = %s """
-			params = (item['images'], item['sizes'], item['colors'], item['choices'], item['properties'], now,
-			          item['sn'])
+			sql ="""update products set images = %s, sizes = %s, colors = %s, prices = %s, choices = %s , properties
+			= %s, updated_at = %s where sn = %s """
+			params = (item['images'], item['sizes'], item['colors'], item['prices'], item['choices'],
+			          item['properties'], now, item['sn'])
 			print(params)
 			try:
 				c.execute(sql, params)

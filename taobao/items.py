@@ -15,6 +15,7 @@ class TaobaoItem(scrapy.Item):
     url = scrapy.Field()
     thumb = scrapy.Field()
     price = scrapy.Field()
+    prices = scrapy.Field()
     images = scrapy.Field()
     choices = scrapy.Field()
     sizes = scrapy.Field()

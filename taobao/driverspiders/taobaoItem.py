@@ -34,8 +34,7 @@ class TaobaoItemSpider(object):
 	
 	def __init__(self):
 		self.lang = "zh"
-	
-	# self.db = MysqlHelper()
+		self.db = MysqlHelper()
 	
 	def init_chrome_driver(self):
 		""" init chrome dirver """
@@ -59,13 +58,13 @@ class TaobaoItemSpider(object):
 	def close(self):
 		"""close driver"""
 		self.driver.quit()
-		# self.db.db.close()
+		self.db.db.close()
 		logger.info('Goodbye, The tasks is finished.')
 		pass
 	
 	def get_tasks(self):
 		""" get tasks from db"""
-		# tasks = self.db.get_product_tasks()
+		tasks = self.db.get_product_tasks()
 		tasks = ["https://detail.tmall.com/item.htm?id=538781935997"]
 		return tasks
 	
@@ -122,12 +121,13 @@ class TaobaoItemSpider(object):
 					product['prices'] = []
 					sku_maps = obj_json['valItemInfo']['skuMap']
 					prices = set()
-					for m in sku_maps.items():
-						prices.add(m['prices'])
+					for k, v in sku_maps.items():
+						prices.add(v['price'])
 					product['prices'] = list(prices)
 					
 					# get choices
 					product['choices'] = self.format_sku(sku_list, sku_maps)
+					self.db.update_product(product)
 			
 			except Exception as e:
 				print(e)
@@ -136,7 +136,7 @@ class TaobaoItemSpider(object):
 	def format_sku(self, sku_list, sku_maps):
 		new_sku_list = dict()
 		for sku in sku_list:
-			new_sku_list[sku['pvs']] = new_sku_list["names"].strip()
+			new_sku_list[sku['pvs']] = sku["names"].strip()
 		
 		for k, v in sku_maps.items():
 			if k.strip(";") in new_sku_list.keys():
