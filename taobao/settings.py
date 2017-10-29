@@ -17,10 +17,13 @@ BOT_NAME = 'taobao'
 SPIDER_MODULES = ['taobao.spiders']
 NEWSPIDER_MODULE = 'taobao.spiders'
 
-CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(CURRENT_PATH, "_data")
-LOG_PATH = os.path.join(CURRENT_PATH, "_data")
-IMG_PATH = os.path.join(CURRENT_PATH, "_images")
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_PATH, "_data")
+LOG_PATH = os.path.join(BASE_PATH, "_data")
+IMG_PATH = os.path.join(BASE_PATH, "_images")
+RESOURCE_PATH = os.path.join(BASE_PATH, "resources")
+
+CHROME_DRIVER_PATH = os.path.join(RESOURCE_PATH, "webdriver", "chromedriver")
 
 MYSQL_CONFIG = {
     "host": "172.17.0.1",
