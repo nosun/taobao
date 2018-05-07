@@ -23,7 +23,7 @@ LOG_PATH = os.path.join(BASE_PATH, "_data")
 IMG_PATH = os.path.join(BASE_PATH, "_images")
 RESOURCE_PATH = os.path.join(BASE_PATH, "resources")
 
-CHROME_DRIVER_PATH = os.path.join(RESOURCE_PATH, "webdriver", "chromedriver")
+CHROME_DRIVER_PATH = os.path.join(RESOURCE_PATH, "drivers", "chromedriver")
 
 MYSQL_CONFIG = {
     "host": "172.17.0.1",

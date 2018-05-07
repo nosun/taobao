@@ -34,8 +34,8 @@ def get_random_time(min_time=0, max_time=3):
 def save_images(sn, images, image_path):
     i = 1
     for image in images:
-        suffix = image.split(".")[-1]
-        file_name = sn + "_" + str(i) + "." + suffix
+        suffix = ".jpg"
+        file_name = sn + "_" + str(i) + suffix
         file_path = os.path.join(image_path, file_name)
         with open(file_path, "wb") as fs:
             try:
@@ -43,7 +43,7 @@ def save_images(sn, images, image_path):
                 if rsp.status_code == 200:
                     fs.write(rsp.content)
                     print("download sn: %s image: %s ok" % (sn, image))
-                    time.sleep(get_random_time(0, 5))
+                    # time.sleep(get_random_time(0, 5))
             except Exception as e:
                 print("image download failed, sn is %s , and url is %s" % (sn, image))
                 print(e)
@@ -52,14 +52,15 @@ def save_images(sn, images, image_path):
 
 def main():
     db = MysqlHelper()
-    shops = db.get_shops_by_status('1')
+    shops = db.get_tmall_shops()
     for shop in shops:
         image_path = mk_image_dir(shop['id'])
+        if shop['id'] == 26:
+            continue
         products = db.get_products_by_shop(shop['id'])
         for product in products:
             images = format_data(product['images'])
             save_images(product['sn'], images, image_path)
-        break
 
 
 if __name__ == '__main__':

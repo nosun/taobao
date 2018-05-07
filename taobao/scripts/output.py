@@ -17,6 +17,7 @@ head = list()
 
 def get_choice(choices, type):
     choices = format_data(choices)
+    choices = json.loads(choices)
     prices = set()
     for choice in choices:
         prices.add(choice['price'])
@@ -31,6 +32,7 @@ def get_property_keys():
     for p in products:
         try:
             properties = format_data(p['properties'])
+            properties = json.loads(properties)
             keys = properties.keys()
             for k in keys:
                 all_keys.add(k)
@@ -42,7 +44,6 @@ def get_property_keys():
 
 def format_data(properties):
     s = properties.replace("\\", "").replace("\'", "\"")
-    s = json.loads(s)
     return s
 
 
@@ -61,12 +62,17 @@ def format_line():
     return line
 
 
+def list_to_string(l):
+    l = json.loads(l)
+    return ",".join(l)
+
+
 def main():
-    file_path = os.path.join(DATA_PATH, 'products.csv')
+    file_path = os.path.join(DATA_PATH, 'products_tmall.csv')
     write_head(file_path)
 
     db = MysqlHelper()
-    shops = db.get_shops_by_status('1')
+    shops = db.get_tmall_shops()
     for shop in shops:
         products = db.get_products_by_shop(shop['id'])
         for product in products:
@@ -74,13 +80,14 @@ def main():
             line['1-sn'] = product['sn']
             line['2-title'] = product['title']
             line['3-price'] = product['price']
-            line['4-prices'] = product['price']
-            line['5-colors'] = product['colors'].replace("\"", "")
-            line['6-sizes'] = product['sizes'].replace("\"", "")
+            line['4-prices'] = list_to_string(format_data(product['prices']))
+            line['5-colors'] = list_to_string(format_data(product['colors']))
+            line['6-sizes'] = list_to_string(format_data(product['sizes']))
             line['7-url'] = product['url']
             line['8-shop_name'] = product['name']
             line['9-shop_url'] = product['task_url']
             properties = format_data(product['properties'])
+            properties = json.loads(properties)
             for k, v in properties.items():
                 line[k] = v.replace("\"", "")
             print(line)
@@ -91,3 +98,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
